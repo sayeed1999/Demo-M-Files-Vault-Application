@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 
 namespace Demo_M_Files_Application
@@ -72,5 +73,23 @@ namespace Demo_M_Files_Application
         }
         #endregion
 
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
+        public void MyEventHandler(EventHandlerEnvironment env)
+        {
+            Vault vault = env.Vault;
+
+            var objectVer = env.ObjVer;
+            var objectVerEx = env.ObjVerEx;
+
+            // Get the object's file data.
+            var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
+            var objectFile = objectFiles[1];
+
+            // Download the file to a temporary location.
+            //string tempFilePath = Path.GetTempFileName();
+            //vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
+
+
+        }
     }
 }
