@@ -96,31 +96,25 @@ namespace Demo_M_Files_Application
 
             // Authenticate with the Google Drive API.
             UserCredential credential;
-            using (var stream = new FileStream("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\client_secret.json", FileMode.Open, FileAccess.Read))
+            using (var stream = new FileStream("D:\\.NET\\Demo M-FILES Vault Application\\Demo M-Files Application\\service-account.json", FileMode.Open, FileAccess.Read))
             {
-                string credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-                credPath = Path.Combine(credPath, ".credentials/drive-dotnet-quickstart.json");
-
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    new[] { DriveService.Scope.Drive },
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
+                credential = GoogleCredential.FromStream(stream)
+                    .CreateScoped(new[] { DriveService.Scope.Drive })
+                    .UnderlyingCredential as UserCredential;
             }
 
             // Create the Drive API service.
             var service = new DriveService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = "M-FILES"
+                ApplicationName = "M-FILES Vault Application"
             });
 
             // Upload the file to Google Drive.
             var fileMetadata = new Google.Apis.Drive.v3.Data.File()
             {
                 Name = objectFile.Title,
-                Parents = new List<string>() { "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86" } // Replace "folder-id" with the ID of the folder you want to upload the file to.
+                Parents = new List<string>() { "1-Cva8a3CXLr1URJ32S2tiuMDR0aRCkrb" } // Replace "folder-id" with the ID of the folder you want to upload the file to.
             };
 
             FilesResource.CreateMediaUpload request;
