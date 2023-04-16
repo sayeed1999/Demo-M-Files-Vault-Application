@@ -50,7 +50,9 @@
     <None Include="install-application.ps1" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.60.0.2986" />
     <PackageReference Include="MFiles.VAF" Version="2.3.623.9" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <Target Name="RunWhenBuildChanges" AfterTargets="Build">
     <!-- Load the current version from the appdef file. -->
