@@ -1,3 +1,7 @@
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
+using Google.Apis.Util.Store;
 using MFiles.VAF;
 using MFiles.VAF.AppTasks;
 using MFiles.VAF.Common;
@@ -11,6 +15,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace Demo_M_Files_Application
 {
@@ -86,10 +91,50 @@ namespace Demo_M_Files_Application
             var objectFile = objectFiles[1];
 
             // Download the file to a temporary location.
-            //string tempFilePath = Path.GetTempFileName();
-            //vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
+            string tempFilePath = Path.GetTempFileName();
+            vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
 
+            // Authenticate with the Google Drive API.
+            UserCredential credential;
+            using (var stream = new FileStream("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\client_secret.json", FileMode.Open, FileAccess.Read))
+            {
+                string credPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+                credPath = Path.Combine(credPath, ".credentials/drive-dotnet-quickstart.json");
 
+                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    new[] { DriveService.Scope.Drive },
+                    "user",
+                    CancellationToken.None,
+                    new FileDataStore(credPath, true)).Result;
+            }
+
+            // Create the Drive API service.
+            var service = new DriveService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "M-FILES"
+            });
+
+            // Upload the file to Google Drive.
+            var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+            {
+                Name = objectFile.Title,
+                Parents = new List<string>() { "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86" } // Replace "folder-id" with the ID of the folder you want to upload the file to.
+            };
+
+            FilesResource.CreateMediaUpload request;
+            using (var stream = new FileStream(tempFilePath, FileMode.Open))
+            {
+                request = service.Files.Create(
+                    fileMetadata,
+                    stream, 
+                    "pdf");
+                request.Upload();
+            }
+
+            // Delete the temporary file.
+            File.Delete(tempFilePath);
         }
     }
 }
