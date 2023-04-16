@@ -92,43 +92,55 @@ namespace Demo_M_Files_Application
 
             // Download the file to a temporary location.
             string tempFilePath = Path.GetTempFileName();
+            //string tempPdfPath = Path.ChangeExtension(tempFilePath, ".pdf");
             vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
 
-            // Authenticate with the Google Drive API.
-            UserCredential credential;
-            using (var stream = new FileStream("D:\\.NET\\Demo M-FILES Vault Application\\Demo M-Files Application\\service-account.json", FileMode.Open, FileAccess.Read))
+            try
             {
-                credential = GoogleCredential.FromStream(stream)
-                    .CreateScoped(new[] { DriveService.Scope.Drive })
-                    .UnderlyingCredential as UserCredential;
+                // Authenticate with the Google Drive API.
+                var credential = GoogleCredential.FromFile("D:\\.NET\\Demo M-FILES Vault Application\\Demo M-Files Application\\service-account.json").CreateScoped(DriveService.Scope.Drive);
+
+                // Create the Drive API service.
+                var service = new DriveService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "M-FILES Vault Application"
+                });
+
+                // Upload the file to Google Drive.
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                {
+                    Name = objectFile.Title,
+                    Parents = new List<string>() { "1-Cva8a3CXLr1URJ32S2tiuMDR0aRCkrb" }, // Replace "folder-id" with the ID of the folder you want to upload the file to.
+                    MimeType = "application/pdf",
+                };
+
+                FilesResource.CreateMediaUpload request;
+                byte[] fileBytes = File.ReadAllBytes(tempFilePath);
+                using (var stream = new MemoryStream(fileBytes))
+                {
+
+                    // Set the position of the memory stream to the beginning.
+                    stream.Position = 0;
+
+                    request = service.Files.Create(
+                        fileMetadata,
+                        stream,
+                        fileMetadata.MimeType);
+                    request.Upload();
+                }
+
+                Console.WriteLine("File uploaded to drive!");
             }
-
-            // Create the Drive API service.
-            var service = new DriveService(new BaseClientService.Initializer()
+            catch (Exception ex)
             {
-                HttpClientInitializer = credential,
-                ApplicationName = "M-FILES Vault Application"
-            });
-
-            // Upload the file to Google Drive.
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File()
-            {
-                Name = objectFile.Title,
-                Parents = new List<string>() { "1-Cva8a3CXLr1URJ32S2tiuMDR0aRCkrb" } // Replace "folder-id" with the ID of the folder you want to upload the file to.
-            };
-
-            FilesResource.CreateMediaUpload request;
-            using (var stream = new FileStream(tempFilePath, FileMode.Open))
-            {
-                request = service.Files.Create(
-                    fileMetadata,
-                    stream, 
-                    "pdf");
-                request.Upload();
+                Console.WriteLine(ex);
             }
-
-            // Delete the temporary file.
-            File.Delete(tempFilePath);
+            finally
+            {
+                // Delete the temporary file.
+                File.Delete(tempFilePath);
+            }
         }
     }
 }
