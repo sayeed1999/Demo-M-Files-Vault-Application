@@ -9,7 +9,7 @@ param(
 $null = [System.Reflection.Assembly]::LoadWithPartialName("Interop.MFilesAPI")
 
 # Target vault
-$vaultName = "demo"
+$vaultName = "My Vault"
 
 # If we did not get a file path then work it out.
 if([String]::IsNullOrWhiteSpace($appFilePath))

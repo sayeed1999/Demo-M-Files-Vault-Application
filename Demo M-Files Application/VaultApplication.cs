@@ -11,11 +11,13 @@ using MFiles.VAF.Core;
 using MFilesAPI;
 using Newtonsoft.Json;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Demo_M_Files_Application
 {
@@ -77,7 +79,7 @@ namespace Demo_M_Files_Application
             return $"<h3>This is my dashboard.</h3>";
         }
         #endregion
-
+        
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         public void MyEventHandler(EventHandlerEnvironment env)
         {
@@ -89,46 +91,74 @@ namespace Demo_M_Files_Application
             // Get the object's file data.
             var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
             var objectFile = objectFiles[1];
-
-            // Download the file to a temporary location.
-            string tempFilePath = Path.GetTempFileName();
-            //string tempPdfPath = Path.ChangeExtension(tempFilePath, ".pdf");
+            var filename = objectFile.GetNameForFileSystem();
+            
+            // Download the file.
+            string tempFilePath = $"C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\assets\\{filename}";
             vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
+
+            string[] Scopes = { DriveService.Scope.Drive };
+            string ApplicationName = "M-FILES";
+
+            /// <summary>
+            /// When using service account for Drive API,
+            /// files are not uploaded into your personal drive rather than a service-to-service comm. drive
+            /// in my case it is:- *********.com!
+            /// Note:-
+            /// You cannot login to the service acc drive like end users, it is only meant for api calls.
+            /// </summary>
+            /// <param name="env"></param>
 
             try
             {
                 // Authenticate with the Google Drive API.
-                var credential = GoogleCredential.FromFile("D:\\.NET\\Demo M-FILES Vault Application\\Demo M-Files Application\\service-account.json").CreateScoped(DriveService.Scope.Drive);
+                GoogleCredential credential = GoogleCredential.FromFile("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\service-account.json").CreateScoped(Scopes[0]);
 
                 // Create the Drive API service.
                 var service = new DriveService(new BaseClientService.Initializer()
                 {
                     HttpClientInitializer = credential,
-                    ApplicationName = "M-FILES Vault Application"
+                    ApplicationName = ApplicationName
                 });
 
-                // Upload the file to Google Drive.
+                // to restrict timeout
+                service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
+
+                // Read files in drive
+                var trequest = service.Files.List();
+
+                var result = trequest.Execute();
+                foreach (var tfile in result.Files)
+                {
+                    Console.WriteLine("{0} ({1})", tfile.Name, tfile.Id);
+                }
+
+                string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // Replace with the folder ID where you want to upload the file
+
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File()
                 {
-                    Name = objectFile.Title,
-                    Parents = new List<string>() { "1-Cva8a3CXLr1URJ32S2tiuMDR0aRCkrb" }, // Replace "folder-id" with the ID of the folder you want to upload the file to.
-                    MimeType = "application/pdf",
+                    Name = filename,
                 };
 
+                
                 FilesResource.CreateMediaUpload request;
-                byte[] fileBytes = File.ReadAllBytes(tempFilePath);
-                using (var stream = new MemoryStream(fileBytes))
+                using (var stream = new FileStream(tempFilePath, FileMode.Open))
                 {
-
-                    // Set the position of the memory stream to the beginning.
-                    stream.Position = 0;
-
-                    request = service.Files.Create(
-                        fileMetadata,
-                        stream,
-                        fileMetadata.MimeType);
-                    request.Upload();
+                    request = service.Files.Create(fileMetadata, stream, "application/pdf");
+                    request.Fields = "id";
+                    request.SupportsTeamDrives = true;
+                    var res = request.Upload();
                 }
+
+                var file = request.ResponseBody;
+                Console.WriteLine("File ID: " + file.Id);
+                Console.ReadLine();
+                
+
+                //var fileName = objectFile.GetNameForFileSystem();
+                //var fileVersion = objectFile.Version <= 1 ? 1 : objectFile.Version - 1;
+                //var fileSession = vault.ObjectFileOperations.DownloadFileInBlocks_Begin(objectFile.ID, fileVersion);
+                //var fileBytes = vault.ObjectFileOperations.DownloadFileInBlocks_ReadBlock(fileSession.DownloadID, fileSession.FileSize32, 0);
 
                 Console.WriteLine("File uploaded to drive!");
             }
@@ -141,6 +171,8 @@ namespace Demo_M_Files_Application
                 // Delete the temporary file.
                 File.Delete(tempFilePath);
             }
+            
         }
+        
     }
 }

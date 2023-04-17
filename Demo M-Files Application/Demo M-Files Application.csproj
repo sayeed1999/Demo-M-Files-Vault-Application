@@ -54,6 +54,9 @@
     <PackageReference Include="MFiles.VAF" Version="2.3.623.9" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="assets\" />
+  </ItemGroup>
   <Target Name="RunWhenBuildChanges" AfterTargets="Build">
     <!-- Load the current version from the appdef file. -->
     <XmlPeek XmlInputPath="appdef.xml" Query="//version/text()">
