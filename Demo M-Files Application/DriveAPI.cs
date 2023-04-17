@@ -1,16 +1,79 @@
 ﻿using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
+using Google.Apis.Drive.v3.Data;
 using Google.Apis.Services;
+using MFilesAPI;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Demo_M_Files_Application
 {
-    public class DriveAPI
+    public static class DriveAPI
     {
-        
+        static string[] Scopes = { DriveService.Scope.Drive };
+        static string ApplicationName = "M-FILES";
+
+        public static DriveService GetService()
+        {
+
+            // Authenticate with the Google Drive API.
+            GoogleCredential credential = GoogleCredential.FromFile("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\service-account.json").CreateScoped(Scopes[0]);
+
+            // Create the Drive API service.
+            var service = new DriveService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = ApplicationName
+            });
+
+            // to restrict timeout error (in case)
+            service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
+
+            return service;
+        }
+
+        public static Google.Apis.Drive.v3.Data.File UploadFile(
+            DriveService service,
+            Google.Apis.Drive.v3.Data.File fileMetadata,
+            string path)
+        {
+            FilesResource.CreateMediaUpload request;
+            using (var stream = new FileStream(path, FileMode.Open))
+            {
+                request = service.Files.Create(fileMetadata, stream, "application/pdf");
+                request.Fields = "id";
+                request.SupportsTeamDrives = true;
+                var res = request.Upload();
+            }
+
+            var file = request.ResponseBody;
+            Console.WriteLine("File ID: " + file.Id);
+            return file;
+        }
+
+        public static byte[] GetFileInBytes(Vault vault, ObjectFile objectFile)
+        {
+            var fileName = objectFile.GetNameForFileSystem();
+            var fileVersion = objectFile.Version <= 1 ? 1 : objectFile.Version - 1;
+            var fileSession = vault.ObjectFileOperations.DownloadFileInBlocks_Begin(objectFile.ID, fileVersion);
+            var fileBytes = vault.ObjectFileOperations.DownloadFileInBlocks_ReadBlock(fileSession.DownloadID, fileSession.FileSize32, 0);
+            return fileBytes;
+        }
+
+        public static void ReadFiles(DriveService service)
+        {
+            // Read files in drive
+            var trequest = service.Files.List();
+
+            var result = trequest.Execute();
+            foreach (var tfile in result.Files)
+            {
+                Console.WriteLine("{0} ({1})", tfile.Name, tfile.Id);
+            }
+        }
     }
 }

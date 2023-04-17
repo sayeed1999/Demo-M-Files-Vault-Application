@@ -28,7 +28,10 @@ namespace Demo_M_Files_Application
     public partial class VaultApplication
         : ConfigurableVaultApplicationBase<Configuration>
     {
+        private Vault vault;
+
         
+
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         public void MyEventHandler(EventHandlerEnvironment env)
         {
@@ -41,13 +44,11 @@ namespace Demo_M_Files_Application
             var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
             var objectFile = objectFiles[1];
             var filename = objectFile.GetNameForFileSystem();
-            
-            // Download the file.
-            string tempFilePath = $"C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\assets\\{filename}";
-            vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
 
-            string[] Scopes = { DriveService.Scope.Drive };
-            string ApplicationName = "M-FILES";
+            // Download the file.
+            string tempFilePath = VaultHelper.DownloadFileIntoLocal(vault, objectFile);
+            
+            
 
             /// <summary>
             /// When using service account for Drive API,
@@ -60,54 +61,21 @@ namespace Demo_M_Files_Application
 
             try
             {
-                // Authenticate with the Google Drive API.
-                GoogleCredential credential = GoogleCredential.FromFile("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\service-account.json").CreateScoped(Scopes[0]);
+                // Get drive api service
+                DriveService service = DriveAPI.GetService();
 
-                // Create the Drive API service.
-                var service = new DriveService(new BaseClientService.Initializer()
-                {
-                    HttpClientInitializer = credential,
-                    ApplicationName = ApplicationName
-                });
+                // Read files in drive                
+                DriveAPI.ReadFiles(service);
 
-                // to restrict timeout
-                service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
-
-                // Read files in drive
-                var trequest = service.Files.List();
-
-                var result = trequest.Execute();
-                foreach (var tfile in result.Files)
-                {
-                    Console.WriteLine("{0} ({1})", tfile.Name, tfile.Id);
-                }
-
-                string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // Replace with the folder ID where you want to upload the file
-
+                // Create metadata
+                //string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // Replace with the folder ID where you want to upload the file
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File()
                 {
                     Name = filename,
                 };
 
-                
-                FilesResource.CreateMediaUpload request;
-                using (var stream = new FileStream(tempFilePath, FileMode.Open))
-                {
-                    request = service.Files.Create(fileMetadata, stream, "application/pdf");
-                    request.Fields = "id";
-                    request.SupportsTeamDrives = true;
-                    var res = request.Upload();
-                }
-
-                var file = request.ResponseBody;
-                Console.WriteLine("File ID: " + file.Id);
-                Console.ReadLine();
-                
-
-                //var fileName = objectFile.GetNameForFileSystem();
-                //var fileVersion = objectFile.Version <= 1 ? 1 : objectFile.Version - 1;
-                //var fileSession = vault.ObjectFileOperations.DownloadFileInBlocks_Begin(objectFile.ID, fileVersion);
-                //var fileBytes = vault.ObjectFileOperations.DownloadFileInBlocks_ReadBlock(fileSession.DownloadID, fileSession.FileSize32, 0);
+                // Upload file
+                var file = DriveAPI.UploadFile(service, fileMetadata, tempFilePath);
 
                 Console.WriteLine("File uploaded to drive!");
             }
@@ -118,7 +86,7 @@ namespace Demo_M_Files_Application
             finally
             {
                 // Delete the temporary file.
-                File.Delete(tempFilePath);
+                VaultHelper.DeleteFileFromLocal(tempFilePath);
             }
             
         }
