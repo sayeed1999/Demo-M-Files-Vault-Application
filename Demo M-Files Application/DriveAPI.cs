@@ -30,31 +30,21 @@ namespace Demo_M_Files_Application
         public static DriveService GetService()
         {
 
-            // Load the OAuth credentials from the JSON file
-            var clientSecrets = GoogleClientSecrets.Load(new MemoryStream(Encoding.UTF8.GetBytes("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\client-secret.json")));
-            var initializer = new GoogleAuthorizationCodeFlow.Initializer
+            UserCredential credential;
+            using (var stream = new FileStream("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\client-secret.json", FileMode.Open, FileAccess.Read))
             {
-                ClientSecrets = clientSecrets.Secrets,
-                Scopes = Scopes,
-                DataStore = new FileDataStore("Drive.Api.Auth.Store")
-            };
+                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    Scopes,
+                    "user", 
+                    CancellationToken.None).Result;
+            }
 
-            var flow = new GoogleAuthorizationCodeFlow(initializer);
-
-            // Obtain an authorization code programmatically
-            var codeReceiver = new LocalServerCodeReceiver();
-            var authUri = flow.CreateAuthorizationCodeRequest("urn:ietf:wg:oauth:2.0:oob").Build();
-            var code = new AuthorizationCodeInstalledApp(flow, codeReceiver).AuthorizeAsync("user", CancellationToken.None).Result;
-
-            // Exchange the authorization code for a token
-            var token = flow.ExchangeCodeForTokenAsync("user", code, "urn:ietf:wg:oauth:2.0:oob", CancellationToken.None).Result;
-
-            // Create the Drive API service
-            var credential = new UserCredential(flow, "user", token);
-            var service = new DriveService(new BaseClientService.Initializer()
+            // Create the service.
+            DriveService service = new DriveService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = "M-FILES"
+                ApplicationName = "M-FILES",
             });
 
             // to restrict timeout error (in case)

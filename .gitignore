@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+## static files...
+assets/
+
 ## this will remove any .json files like client_secret.json, client-secret.json
 *secret.json
 ## this will remove any .json files like service_account.json, service-account.json
