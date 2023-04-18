@@ -107,6 +107,7 @@ namespace Demo_M_Files_Application
         }
 
 
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDestroyObject)]
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDeleteObject)]
         public void DocumentDeleteHandler(EventHandlerEnvironment env)
         {
@@ -125,6 +126,5 @@ namespace Demo_M_Files_Application
             string result = service.Files.Delete(fileID).Execute();
         }
 
-        
     }
 }
