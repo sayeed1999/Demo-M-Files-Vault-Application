@@ -16,11 +16,14 @@ using Google.Apis.Util.Store;
 using static Google.Apis.Drive.v3.DriveService;
 using System.Threading;
 using Google.Apis.Auth.OAuth2.Flows;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Demo_M_Files_Application
 {
     public static class DriveAPI
     {
+        static string rootDir = "C:\\Development\\Demo M-Files Application\\Demo M-Files Application";
+
         static string[] Scopes = { 
             DriveService.Scope.Drive, 
             DriveService.Scope.DriveFile 
@@ -29,26 +32,42 @@ namespace Demo_M_Files_Application
 
         public static DriveService GetService()
         {
-
-            UserCredential credential;
-            using (var stream = new FileStream("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\client-secret.json", FileMode.Open, FileAccess.Read))
+            ClientSecrets secrets;
+            using (var stream = new FileStream($"{rootDir}\\client-secret.json", FileMode.Open, FileAccess.Read))
             {
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    Scopes,
-                    "user", 
-                    CancellationToken.None).Result;
+                secrets = GoogleClientSecrets.FromStream(stream).Secrets;
             }
 
-            // Create the service.
-            DriveService service = new DriveService(new BaseClientService.Initializer()
+            // Set up the authorization code flow
+            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
             {
-                HttpClientInitializer = credential,
-                ApplicationName = "M-FILES",
+                ClientSecrets = secrets,
+                Scopes = new[] { DriveService.Scope.Drive },
+                DataStore = new FileDataStore("DriveApiSample")
             });
 
-            // to restrict timeout error (in case)
-            service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
+            // Construct the authorization request URL
+            var state = Guid.NewGuid().ToString("N");
+            var authUrl = flow.CreateAuthorizationCodeRequest("urn:ietf:wg:oauth:2.0:oob").Build().AbsoluteUri;
+            authUrl += $"&state={state}";
+
+            // Redirect the user to the authorization request URL
+            Console.WriteLine($"Please visit the following URL to authorize the application: {authUrl}");
+            Console.Write("Enter the authorization code: ");
+            var code = Console.ReadLine();
+
+            // Exchange the authorization code for an access token and refresh token
+            var token = flow.ExchangeCodeForTokenAsync("user", code, "urn:ietf:wg:oauth:2.0:oob", CancellationToken.None).Result;
+            var accessToken = token.AccessToken;
+            var refreshToken = token.RefreshToken;
+
+            // Use the access token and refresh token to make API requests
+            var credential = new UserCredential(flow, "user", token);
+            var service = new DriveService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "Drive API Sample"
+            });
 
             return service;
         }
@@ -57,7 +76,7 @@ namespace Demo_M_Files_Application
         {
 
             // Authenticate with the Google Drive API.
-            GoogleCredential credential = GoogleCredential.FromFile("C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\service-account.json").CreateScoped(Scopes[0]);
+            GoogleCredential credential = GoogleCredential.FromFile($"{rootDir}\\service-account.json").CreateScoped(Scopes[0]);
 
             // Create the Drive API service.
             var service = new DriveService(new BaseClientService.Initializer()
