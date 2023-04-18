@@ -62,20 +62,35 @@ namespace Demo_M_Files_Application
             try
             {
                 // Get drive api service
-                DriveService service = DriveAPI.GetService();
+                DriveService service = DriveAPI.GetServiceUsingServiceAccount();
 
-                // Read files in drive                
+                // Read files in drive
                 DriveAPI.ReadFiles(service);
 
                 // Create metadata
-                //string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // Replace with the folder ID where you want to upload the file
+                string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // folder id of the folder i want to upload to
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File()
                 {
                     Name = filename,
+                    Parents = new string[] { folderId },
                 };
 
                 // Upload file
-                var file = DriveAPI.UploadFile(service, fileMetadata, tempFilePath);
+                Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(service, fileMetadata, tempFilePath);
+
+                // Get the property definition ID of the property you want to add.
+                int propertyDefID = 1026; // ID for Google Drive File ID
+
+                // Create a property value object for the property.
+                PropertyValue propertyValue = new PropertyValue();
+                propertyValue.PropertyDef = propertyDefID;
+                propertyValue.TypedValue.SetValue(MFDataType.MFDatatypeText, file.Id);
+
+                PropertyValues propertyValues = new PropertyValues();
+                propertyValues.Add(1, propertyValue);
+
+                // Add the property to the document.
+                vault.ObjectPropertyOperations.SetProperties(objectVer, propertyValues);
 
                 Console.WriteLine("File uploaded to drive!");
             }

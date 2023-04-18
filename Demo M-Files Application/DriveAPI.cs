@@ -16,58 +16,40 @@ using Google.Apis.Util.Store;
 using static Google.Apis.Drive.v3.DriveService;
 using System.Threading;
 using Google.Apis.Auth.OAuth2.Flows;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace Demo_M_Files_Application
 {
     public static class DriveAPI
     {
         static string rootDir = "C:\\Development\\Demo M-Files Application\\Demo M-Files Application";
-
         static string[] Scopes = { 
             DriveService.Scope.Drive, 
             DriveService.Scope.DriveFile 
         };
         static string ApplicationName = "M-FILES";
 
-        public static DriveService GetService()
+        public static DriveService GetServiceUsingOAuth2()
         {
-            ClientSecrets secrets;
+
+            UserCredential credential;
             using (var stream = new FileStream($"{rootDir}\\client-secret.json", FileMode.Open, FileAccess.Read))
             {
-                secrets = GoogleClientSecrets.FromStream(stream).Secrets;
+                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    Scopes,
+                    "user", 
+                    CancellationToken.None).Result;
             }
 
-            // Set up the authorization code flow
-            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-            {
-                ClientSecrets = secrets,
-                Scopes = new[] { DriveService.Scope.Drive },
-                DataStore = new FileDataStore("DriveApiSample")
-            });
-
-            // Construct the authorization request URL
-            var state = Guid.NewGuid().ToString("N");
-            var authUrl = flow.CreateAuthorizationCodeRequest("urn:ietf:wg:oauth:2.0:oob").Build().AbsoluteUri;
-            authUrl += $"&state={state}";
-
-            // Redirect the user to the authorization request URL
-            Console.WriteLine($"Please visit the following URL to authorize the application: {authUrl}");
-            Console.Write("Enter the authorization code: ");
-            var code = Console.ReadLine();
-
-            // Exchange the authorization code for an access token and refresh token
-            var token = flow.ExchangeCodeForTokenAsync("user", code, "urn:ietf:wg:oauth:2.0:oob", CancellationToken.None).Result;
-            var accessToken = token.AccessToken;
-            var refreshToken = token.RefreshToken;
-
-            // Use the access token and refresh token to make API requests
-            var credential = new UserCredential(flow, "user", token);
-            var service = new DriveService(new BaseClientService.Initializer
+            // Create the service.
+            DriveService service = new DriveService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = "Drive API Sample"
+                ApplicationName = "M-FILES",
             });
+
+            // to restrict timeout error (in case)
+            service.HttpClient.Timeout = TimeSpan.FromMinutes(100);
 
             return service;
         }
@@ -102,7 +84,7 @@ namespace Demo_M_Files_Application
             FilesResource.CreateMediaUpload request;
             using (var stream = new FileStream(path, FileMode.Open))
             {
-                request = service.Files.Create(fileMetadata, stream, "application/pdf");
+                request = service.Files.Create(fileMetadata, stream, mimeType);
                 request.Fields = "id";
                 request.SupportsTeamDrives = true;
                 var res = request.Upload();
