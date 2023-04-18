@@ -115,5 +115,18 @@ namespace Demo_M_Files_Application
                 Console.WriteLine("{0} ({1})", tfile.Name, tfile.Id);
             }
         }
+
+        public static string GetFileIDFromFileLocatedInDrive(Vault vault, ObjVer objectVer)
+        {
+            int propertyDefIDOfDriveFileId = 1026;
+            PropertyValue propertyValue = vault.ObjectPropertyOperations.GetProperty(objectVer, propertyDefIDOfDriveFileId);
+            PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefIDOfDriveFileId);
+
+            // Get the property value
+            TypedValue typedValue = propertyValue.TypedValue;
+            //string propertyName = propertyDef.Name;
+            string displayValue = typedValue.DisplayValue;
+            return displayValue;
+        }
     }
 }

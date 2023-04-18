@@ -33,7 +33,7 @@ namespace Demo_M_Files_Application
         
 
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
-        public void MyEventHandler(EventHandlerEnvironment env)
+        public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
             Vault vault = env.Vault;
 
@@ -105,6 +105,47 @@ namespace Demo_M_Files_Application
             }
             
         }
+
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDeleteObject)]
+        public void DocumentDeleteHandler(EventHandlerEnvironment env)
+        {
+            Vault vault = env.Vault;
+
+            var objectVer = env.ObjVer;
+            var objectVerEx = env.ObjVerEx;
+
+            // Get the ID of the file located in drive
+            string fileID = DriveAPI.GetFileIDFromFileLocatedInDrive(vault, objectVer);
+
+            // Get drive api service
+            DriveService service = DriveAPI.GetServiceUsingServiceAccount();
+
+            // Delete the file
+            string result = service.Files.Delete(fileID).Execute();
+        }
+
         
+
+        private void IterateOverPropertyValues(ObjVer objectVer)
+        {
+            var propertyValues = vault.ObjectPropertyOperations.GetProperties(objectVer, false);
+
+            // Loop through the properties and do something with each one.
+            foreach (PropertyValue propertyValue in propertyValues)
+            {
+                int propertyDefID = propertyValue.PropertyDef;
+
+                // Get the property definition.
+                PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefID);
+
+                // Get the property value.
+                TypedValue typedValue = propertyValue.TypedValue;
+
+                // Do something with the property value and/or property definition.
+                // For example, you could print the property name and value:
+                Console.WriteLine($"{propertyDef.Name}: {typedValue.DisplayValue}");
+            }
+        }
     }
 }
