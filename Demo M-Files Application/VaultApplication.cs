@@ -32,7 +32,7 @@ namespace Demo_M_Files_Application
 
         
 
-        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]  
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
             Vault vault = env.Vault;
