@@ -226,5 +226,70 @@ namespace Demo_M_Files_Application
 
         }
 
+        //.
+        //.
+        //.
+        // going through all event handlers one by one...
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeSetProperties)]
+        public void OnEventHandler00(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterSetProperties)]
+        public void OnEventHandler01(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckInChanges)]
+        public void OnEventHandler02(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterCheckInChanges)]
+        public void OnEventHandler03(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
+        public void OnEventHandler04(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterCheckOut)]
+        public void OnEventHandler05(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckInChangesFinalize)]
+        public void OnEventHandler06(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterCheckInChangesFinalize)]
+        public void OnEventHandler07(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDeleteObject)]
+        public void OnEventHandler08(EventHandlerEnvironment env)
+        {
+
+        }
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterDeleteObject)]
+        public void OnEventHandler09(EventHandlerEnvironment env)
+        {
+
+        }
+
     }
 }
