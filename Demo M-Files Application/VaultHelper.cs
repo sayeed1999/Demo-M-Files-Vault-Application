@@ -24,6 +24,35 @@ namespace Demo_M_Files_Application
             return;
         }
 
+        public static string GetFileIDFromFileLocatedInDrive(Vault vault, ObjVer objectVer)
+        {
+            try
+            {
+                int propertyDefIDOfDriveFileId = 1026;
+                PropertyValue propertyValue = vault.ObjectPropertyOperations.GetProperty(objectVer, propertyDefIDOfDriveFileId);
+                PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefIDOfDriveFileId);
+
+                // Get the property value
+                TypedValue typedValue = propertyValue.TypedValue;
+                //string propertyName = propertyDef.Name;
+                string displayValue = typedValue.DisplayValue;
+                return displayValue;
+            }
+            catch (Exception ex)
+            {
+                // IF NOT FOUND
+                return "";
+            }
+        }
+
+        public static byte[] GetFileInBytes(Vault vault, ObjectFile objectFile)
+        {
+            var fileName = objectFile.GetNameForFileSystem();
+            var fileVersion = objectFile.Version <= 1 ? 1 : objectFile.Version - 1;
+            var fileSession = vault.ObjectFileOperations.DownloadFileInBlocks_Begin(objectFile.ID, fileVersion);
+            var fileBytes = vault.ObjectFileOperations.DownloadFileInBlocks_ReadBlock(fileSession.DownloadID, fileSession.FileSize32, 0);
+            return fileBytes;
+        }
 
     }
 }

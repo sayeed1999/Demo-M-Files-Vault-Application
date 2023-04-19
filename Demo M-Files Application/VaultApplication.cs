@@ -28,14 +28,18 @@ namespace Demo_M_Files_Application
     public partial class VaultApplication
         : ConfigurableVaultApplicationBase<Configuration>
     {
-
         private DriveService driveService { get; set; }
+        private readonly int documentNamePropertyDefID = 0;
+        private readonly int driveFileNamePropertyDefID = 1026;
+        private readonly string driveFolderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86";
+        private bool IsNewDoc { get; set;} = false;
+
         public VaultApplication()
         {
             this.driveService = DriveAPI.GetServiceUsingServiceAccount();
         }
 
-        public static void IterateOverPropertyValues(Vault vault, ObjVer objectVer)
+        private void IterateOverPropertyValues(Vault vault, ObjVer objectVer)
         {
             var propertyValues = vault.ObjectPropertyOperations.GetProperties(objectVer, false);
 
@@ -56,9 +60,19 @@ namespace Demo_M_Files_Application
             }
         }
 
+        private PropertyValue CreatePropertyValueOfString(object value)
+        {
+            PropertyValue propertyValue = new PropertyValue();
+            propertyValue.PropertyDef = driveFileNamePropertyDefID;
+            propertyValue.TypedValue.SetValue(MFDataType.MFDatatypeText, value);
+            return propertyValue;
+        }
+
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
+            this.IsNewDoc = true;
+
             Vault vault = env.Vault;
 
             var objectVer = env.ObjVer;
@@ -71,8 +85,6 @@ namespace Demo_M_Files_Application
 
             // Download the file.
             string tempFilePath = VaultHelper.DownloadFileIntoLocal(vault, objectFile);
-            
-            
 
             /// <summary>
             /// When using service account for Drive API,
@@ -85,30 +97,23 @@ namespace Demo_M_Files_Application
 
             try
             {
-                // Read files in drive
-                // DriveAPI.ReadFiles(driveService);
-
                 // Create metadata
-                string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // folder id of the folder i want to upload to
                 var fileMetadata = new Google.Apis.Drive.v3.Data.File()
                 {
                     Name = filename,
-                    Parents = new string[] { folderId },
+                    Parents = new string[] { driveFolderId },
                 };
 
                 // Upload file
                 Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(driveService, fileMetadata, tempFilePath);
 
-                // Get the property definition ID of the property you want to add.
-                int propertyDefID = 1026; // ID for Google Drive File ID
-
                 // Create a property value object for the property.
-                PropertyValue propertyValue = new PropertyValue();
-                propertyValue.PropertyDef = propertyDefID;
-                propertyValue.TypedValue.SetValue(MFDataType.MFDatatypeText, file.Id);
+                PropertyValue propertyValue = CreatePropertyValueOfString(file.Id);
 
-                PropertyValues propertyValues = new PropertyValues();
-                propertyValues.Add(1, propertyValue);
+                PropertyValues propertyValues = new PropertyValues
+                {
+                    { 1, propertyValue }
+                };
 
                 // Add the property to the document.
                 vault.ObjectPropertyOperations.SetProperties(objectVer, propertyValues);
@@ -125,6 +130,7 @@ namespace Demo_M_Files_Application
                 VaultHelper.DeleteFileFromLocal(tempFilePath);
             }
             
+            this.IsNewDoc = false;
         }
 
 
@@ -140,7 +146,7 @@ namespace Demo_M_Files_Application
             try
             {
                 // Get the ID of the file located in drive
-                string fileID = DriveAPI.GetFileIDFromFileLocatedInDrive(vault, objectVer);
+                string fileID = VaultHelper.GetFileIDFromFileLocatedInDrive(vault, objectVer);
 
                 // Delete the file
                 string result = !String.IsNullOrWhiteSpace(fileID)
@@ -154,33 +160,89 @@ namespace Demo_M_Files_Application
         }
 
 
-        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeSetProperties)]
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterSetProperties)]
         public void DocumentPropertyChangeHandler(EventHandlerEnvironment env)
         {
+            if (this.IsNewDoc == true) return; 
+            
             Vault vault = env.Vault;
 
             var objectVer = env.ObjVer;
             var objectVerEx = env.ObjVerEx;
 
+            // get the drive file ID
+            var fileId = VaultHelper.GetFileIDFromFileLocatedInDrive(vault, objectVer);
+
+            if (String.IsNullOrEmpty(fileId))
+            {
+                // object is replaced
+                return;
+            }
+
             // get the file
+            Google.Apis.Drive.v3.Data.File file = DriveAPI.GetFile(driveService, fileId);
 
             // match filename change
+            PropertyValue propertyValue = objectVerEx.GetProperty(this.documentNamePropertyDefID);
+            if (propertyValue == null
+                || propertyValue.TypedValue == null
+                || String.IsNullOrEmpty(propertyValue.TypedValue.DisplayValue)
+            ) return;
 
             // update name in drive if changed in m-files
+            var ext = Path.GetExtension(file.Name);
+            var displayValue = propertyValue.TypedValue.DisplayValue + ext;
+            if (file.Name != displayValue)
+            {
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                {
+                    Name = propertyValue.TypedValue.DisplayValue + ext,
+                };
+
+                var res = DriveAPI.UpdateFileMetadata(driveService, fileMetadata, fileId);
+            }
+
         }
 
 
-        [EventHandler(MFEventHandlerType.MFEventHandlerAfterCheckInChangesFinalize)]
-        public void DocumentCheckInChangesHandler(EventHandlerEnvironment env)
+        private void DocumentUpdateHandler(EventHandlerEnvironment env)
         {
             Vault vault = env.Vault;
 
             var objectVer = env.ObjVer;
             var objectVerEx = env.ObjVerEx;
 
+            // get the drive file ID
+            var fileId = VaultHelper.GetFileIDFromFileLocatedInDrive(vault, objectVer);
+
             // check if the document has any modifications or not with the current document
+            var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
+            var objectFile = objectFiles[1];
 
             // sync file updates through drive api
+            if (String.IsNullOrEmpty(fileId)) return;
+
+            string tempFilePath = VaultHelper.DownloadFileIntoLocal(vault, objectFile);
+
+            try
+            {
+                // Create metadata
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File();
+
+                // Upload file
+                Google.Apis.Drive.v3.Data.File file = DriveAPI.UpdateFile(driveService, fileMetadata, fileId, tempFilePath);
+
+                Console.WriteLine("File updated to drive!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            finally
+            {
+                // Delete the temporary file.
+                VaultHelper.DeleteFileFromLocal(tempFilePath);
+            }
         }
 
 

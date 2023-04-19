@@ -73,6 +73,12 @@ namespace Demo_M_Files_Application
             return service;
         }
 
+        public static Google.Apis.Drive.v3.Data.File GetFile(DriveService driveService, string fileId)
+        {
+            Google.Apis.Drive.v3.Data.File file = driveService.Files.Get(fileId).Execute();
+            return file;
+        }
+
         public static Google.Apis.Drive.v3.Data.File UploadFile(
             DriveService service,
             Google.Apis.Drive.v3.Data.File fileMetadata,
@@ -95,14 +101,41 @@ namespace Demo_M_Files_Application
             return file;
         }
 
-        public static byte[] GetFileInBytes(Vault vault, ObjectFile objectFile)
+        public static Google.Apis.Drive.v3.Data.File UpdateFileMetadata(
+            DriveService service,
+            Google.Apis.Drive.v3.Data.File fileMetadata,
+            string fileId
+        )
         {
-            var fileName = objectFile.GetNameForFileSystem();
-            var fileVersion = objectFile.Version <= 1 ? 1 : objectFile.Version - 1;
-            var fileSession = vault.ObjectFileOperations.DownloadFileInBlocks_Begin(objectFile.ID, fileVersion);
-            var fileBytes = vault.ObjectFileOperations.DownloadFileInBlocks_ReadBlock(fileSession.DownloadID, fileSession.FileSize32, 0);
-            return fileBytes;
+            var res = service.Files.Update(fileMetadata, fileId).Execute();
+            return res;
         }
+
+        public static Google.Apis.Drive.v3.Data.File UpdateFile(
+            DriveService service,
+            Google.Apis.Drive.v3.Data.File fileMetadata,
+            string fileId,
+            string path
+        )
+        {
+            string fileExtension = System.IO.Path.GetExtension(path);
+            string mimeType = MimeTypesMap.GetMimeType(fileExtension);
+            
+            FilesResource.UpdateMediaUpload request;
+
+            using (var stream = new FileStream(path, FileMode.Open))
+            {
+                request = service.Files.Update(fileMetadata, fileId, stream, mimeType);
+                request.Fields = "id";
+                request.SupportsTeamDrives = true;
+                request.Upload();
+            }
+            var file = request.ResponseBody;
+            Console.WriteLine("File ID: " + file.Id);
+            return file;
+        }
+
+
 
         public static void ReadFiles(DriveService service)
         {
@@ -116,17 +149,6 @@ namespace Demo_M_Files_Application
             }
         }
 
-        public static string GetFileIDFromFileLocatedInDrive(Vault vault, ObjVer objectVer)
-        {
-            int propertyDefIDOfDriveFileId = 1026;
-            PropertyValue propertyValue = vault.ObjectPropertyOperations.GetProperty(objectVer, propertyDefIDOfDriveFileId);
-            PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefIDOfDriveFileId);
-
-            // Get the property value
-            TypedValue typedValue = propertyValue.TypedValue;
-            //string propertyName = propertyDef.Name;
-            string displayValue = typedValue.DisplayValue;
-            return displayValue;
-        }
+        
     }
 }
