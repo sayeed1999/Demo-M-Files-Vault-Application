@@ -136,18 +136,18 @@ namespace Demo_M_Files_Application
         }
 
 
-        //[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
-        //public void DocumentUpdateHandler(EventHandlerEnvironment env)
-        //{
-        //    this.DocumentDeleteHandler(env);
-        //}
+        /*[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
+        public void DocumentUpdateHandler(EventHandlerEnvironment env)
+        {
+            this.DocumentDeleteHandler(env);
+        }*/
 
-        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckInChanges)]
+        /*[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckInChanges)]
         public void DocumentCheckInHandler(EventHandlerEnvironment env)
         {
             this.DocumentDeleteHandler(env);
             this.DocumentUploadHandler(env);
-        }
+        }*/
 
     }
 }
