@@ -28,11 +28,14 @@ namespace Demo_M_Files_Application
     public partial class VaultApplication
         : ConfigurableVaultApplicationBase<Configuration>
     {
-        private Vault vault;
 
-        
+        private DriveService driveService { get; set; }
+        public VaultApplication()
+        {
+            this.driveService = DriveAPI.GetServiceUsingServiceAccount();
+        }
 
-        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]  
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
             Vault vault = env.Vault;
@@ -61,11 +64,8 @@ namespace Demo_M_Files_Application
 
             try
             {
-                // Get drive api service
-                DriveService service = DriveAPI.GetServiceUsingServiceAccount();
-
                 // Read files in drive
-                DriveAPI.ReadFiles(service);
+                // DriveAPI.ReadFiles(driveService);
 
                 // Create metadata
                 string folderId = "1FeqgmZdNFe1MwudOgVyjH9ARSOrGIW86"; // folder id of the folder i want to upload to
@@ -76,7 +76,7 @@ namespace Demo_M_Files_Application
                 };
 
                 // Upload file
-                Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(service, fileMetadata, tempFilePath);
+                Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(driveService, fileMetadata, tempFilePath);
 
                 // Get the property definition ID of the property you want to add.
                 int propertyDefID = 1026; // ID for Google Drive File ID
@@ -121,12 +121,9 @@ namespace Demo_M_Files_Application
                 // Get the ID of the file located in drive
                 string fileID = DriveAPI.GetFileIDFromFileLocatedInDrive(vault, objectVer);
 
-                // Get drive api service
-                DriveService service = DriveAPI.GetServiceUsingServiceAccount();
-
                 // Delete the file
                 string result = !String.IsNullOrWhiteSpace(fileID)
-                    ? service.Files.Delete(fileID).Execute()
+                    ? driveService.Files.Delete(fileID).Execute()
                     : "Not Found in Drive Storage!";
             }
             catch(Exception ex)
@@ -135,6 +132,16 @@ namespace Demo_M_Files_Application
             }
         }
 
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeSetProperties)]
+        public void DocumentPropertyChangeHandler(EventHandlerEnvironment env)
+        {
+            Vault vault = env.Vault;
+
+            var objectVer = env.ObjVer;
+            var objectVerEx = env.ObjVerEx;
+
+        }
 
         /*[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
         public void DocumentUpdateHandler(EventHandlerEnvironment env)
