@@ -128,26 +128,5 @@ namespace Demo_M_Files_Application
             string displayValue = typedValue.DisplayValue;
             return displayValue;
         }
-
-        public static void IterateOverPropertyValues(Vault vault, ObjVer objectVer)
-        {
-            var propertyValues = vault.ObjectPropertyOperations.GetProperties(objectVer, false);
-
-            // Loop through the properties and do something with each one.
-            foreach (PropertyValue propertyValue in propertyValues)
-            {
-                int propertyDefID = propertyValue.PropertyDef;
-
-                // Get the property definition.
-                PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefID);
-
-                // Get the property value.
-                TypedValue typedValue = propertyValue.TypedValue;
-
-                // Do something with the property value and/or property definition.
-                // For example, you could print the property name and value:
-                Console.WriteLine($"{propertyDef.Name}: {typedValue.DisplayValue}");
-            }
-        }
     }
 }

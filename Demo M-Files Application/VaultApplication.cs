@@ -35,6 +35,27 @@ namespace Demo_M_Files_Application
             this.driveService = DriveAPI.GetServiceUsingServiceAccount();
         }
 
+        public static void IterateOverPropertyValues(Vault vault, ObjVer objectVer)
+        {
+            var propertyValues = vault.ObjectPropertyOperations.GetProperties(objectVer, false);
+
+            // Loop through the properties and do something with each one.
+            foreach (PropertyValue propertyValue in propertyValues)
+            {
+                int propertyDefID = propertyValue.PropertyDef;
+
+                // Get the property definition.
+                PropertyDef propertyDef = vault.PropertyDefOperations.GetPropertyDef(propertyDefID);
+
+                // Get the property value.
+                TypedValue typedValue = propertyValue.TypedValue;
+
+                // Do something with the property value and/or property definition.
+                // For example, you could print the property name and value:
+                Console.WriteLine($"{propertyDef.Name}: {typedValue.DisplayValue}");
+            }
+        }
+
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
@@ -141,7 +162,27 @@ namespace Demo_M_Files_Application
             var objectVer = env.ObjVer;
             var objectVerEx = env.ObjVerEx;
 
+            // get the file
+
+            // match filename change
+
+            // update name in drive if changed in m-files
         }
+
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterCheckInChangesFinalize)]
+        public void DocumentCheckInChangesHandler(EventHandlerEnvironment env)
+        {
+            Vault vault = env.Vault;
+
+            var objectVer = env.ObjVer;
+            var objectVerEx = env.ObjVerEx;
+
+            // check if the document has any modifications or not with the current document
+
+            // sync file updates through drive api
+        }
+
 
         /*[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
         public void DocumentUpdateHandler(EventHandlerEnvironment env)
