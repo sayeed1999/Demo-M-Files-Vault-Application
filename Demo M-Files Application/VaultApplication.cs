@@ -116,14 +116,37 @@ namespace Demo_M_Files_Application
             var objectVer = env.ObjVer;
             var objectVerEx = env.ObjVerEx;
 
-            // Get the ID of the file located in drive
-            string fileID = DriveAPI.GetFileIDFromFileLocatedInDrive(vault, objectVer);
+            try
+            {
+                // Get the ID of the file located in drive
+                string fileID = DriveAPI.GetFileIDFromFileLocatedInDrive(vault, objectVer);
 
-            // Get drive api service
-            DriveService service = DriveAPI.GetServiceUsingServiceAccount();
+                // Get drive api service
+                DriveService service = DriveAPI.GetServiceUsingServiceAccount();
 
-            // Delete the file
-            string result = service.Files.Delete(fileID).Execute();
+                // Delete the file
+                string result = !String.IsNullOrWhiteSpace(fileID)
+                    ? service.Files.Delete(fileID).Execute()
+                    : "Not Found in Drive Storage!";
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Some error has occurred. Try considering checking in before deleting. Error Details: " + ex.Message);
+            }
+        }
+
+
+        //[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
+        //public void DocumentUpdateHandler(EventHandlerEnvironment env)
+        //{
+        //    this.DocumentDeleteHandler(env);
+        //}
+
+        [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckInChanges)]
+        public void DocumentCheckInHandler(EventHandlerEnvironment env)
+        {
+            this.DocumentDeleteHandler(env);
+            this.DocumentUploadHandler(env);
         }
 
     }
