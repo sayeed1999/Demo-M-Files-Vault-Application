@@ -69,6 +69,7 @@ namespace Demo_M_Files_Application
         }
 
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
+        [EventHandler(MFEventHandlerType.MFEventHandlerAfterFileUpload)]
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
             this.IsNewDoc = true;
@@ -80,8 +81,15 @@ namespace Demo_M_Files_Application
 
             // Get the object's file data.
             var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
+
+            // document less document is not uploaded to drive
+            if (objectFiles.Count == 0) return; 
+
             var objectFile = objectFiles[1];
             var filename = objectFile.GetNameForFileSystem();
+
+            // get the drive file ID
+            var fileId = VaultHelper.GetFileIDFromFileLocatedInDrive(vault, objectVer);
 
             // Download the file.
             string tempFilePath = VaultHelper.DownloadFileIntoLocal(vault, objectFile);
@@ -97,28 +105,42 @@ namespace Demo_M_Files_Application
 
             try
             {
-                // Create metadata
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                if (String.IsNullOrEmpty(fileId))
                 {
-                    Name = filename,
-                    Parents = new string[] { driveFolderId },
-                };
+                    // Create metadata
+                    var fileMetadata = new Google.Apis.Drive.v3.Data.File()
+                    {
+                        Name = filename,
+                        Parents = new string[] { driveFolderId },
+                    };
 
-                // Upload file
-                Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(driveService, fileMetadata, tempFilePath);
+                    // Upload file
+                    Google.Apis.Drive.v3.Data.File file = DriveAPI.UploadFile(driveService, fileMetadata, tempFilePath);
 
-                // Create a property value object for the property.
-                PropertyValue propertyValue = CreatePropertyValueOfString(file.Id);
+                    // Create a property value object for the property.
+                    PropertyValue propertyValue = CreatePropertyValueOfString(file.Id);
 
-                PropertyValues propertyValues = new PropertyValues
+                    PropertyValues propertyValues = new PropertyValues
+                    {
+                        { 1, propertyValue }
+                    };
+
+                    // Add the property to the document.
+                    vault.ObjectPropertyOperations.SetProperties(objectVer, propertyValues);
+
+                    Console.WriteLine("File uploaded to drive!");
+                }
+                else
                 {
-                    { 1, propertyValue }
-                };
+                    // Create metadata
+                    var fileMetadata = new Google.Apis.Drive.v3.Data.File();
 
-                // Add the property to the document.
-                vault.ObjectPropertyOperations.SetProperties(objectVer, propertyValues);
+                    // Update/Replace file
+                    Google.Apis.Drive.v3.Data.File file = DriveAPI.UpdateFile(driveService, fileMetadata, fileId, tempFilePath);
 
-                Console.WriteLine("File uploaded to drive!");
+                    Console.WriteLine("File updated to drive!");
+
+                }
             }
             catch (Exception ex)
             {
