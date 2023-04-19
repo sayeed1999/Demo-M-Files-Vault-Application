@@ -227,47 +227,6 @@ namespace Demo_M_Files_Application
         }
 
 
-        private void DocumentUpdateHandler(EventHandlerEnvironment env)
-        {
-            Vault vault = env.Vault;
-
-            var objectVer = env.ObjVer;
-            var objectVerEx = env.ObjVerEx;
-
-            // get the drive file ID
-            var fileId = VaultHelper.GetFileIDFromFileLocatedInDrive(vault, objectVer);
-
-            // check if the document has any modifications or not with the current document
-            var objectFiles = vault.ObjectFileOperations.GetFiles(objectVer);
-            var objectFile = objectFiles[1];
-
-            // sync file updates through drive api
-            if (String.IsNullOrEmpty(fileId)) return;
-
-            string tempFilePath = VaultHelper.DownloadFileIntoLocal(vault, objectFile);
-
-            try
-            {
-                // Create metadata
-                var fileMetadata = new Google.Apis.Drive.v3.Data.File();
-
-                // Upload file
-                Google.Apis.Drive.v3.Data.File file = DriveAPI.UpdateFile(driveService, fileMetadata, fileId, tempFilePath);
-
-                Console.WriteLine("File updated to drive!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
-            finally
-            {
-                // Delete the temporary file.
-                VaultHelper.DeleteFileFromLocal(tempFilePath);
-            }
-        }
-
-
         /*[EventHandler(MFEventHandlerType.MFEventHandlerBeforeCheckOut)]
         public void DocumentUpdateHandler(EventHandlerEnvironment env)
         {
