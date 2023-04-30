@@ -68,10 +68,19 @@ namespace Demo_M_Files_Application
             return propertyValue;
         }
 
+        /// <summary>
+        /// 1. Uploads a document to Drive if uploaded into M-FILES,
+        /// 2. Replaces a document to Drive if replaced by another doc in M-FILES.
+        /// </summary>
+        /// <param name="env"></param>
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeCreateNewObjectFinalize)]
         [EventHandler(MFEventHandlerType.MFEventHandlerAfterFileUpload)]
         public void DocumentUploadHandler(EventHandlerEnvironment env)
         {
+            // When a new doc is created, both handlers will be executed one by one,
+            // We stop execution of file upload handler for newly created,
+            // only allowing for older docs in case of file replacing...
+            if (this.IsNewDoc == true) return;
             this.IsNewDoc = true;
 
             Vault vault = env.Vault;
@@ -155,7 +164,10 @@ namespace Demo_M_Files_Application
             this.IsNewDoc = false;
         }
 
-
+        /// <summary>
+        /// Deletes a document from Drive if deleted/destroyed from M-FILLES
+        /// </summary>
+        /// <param name="env"></param>
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDestroyObject)]
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeDeleteObject)]
         public void DocumentDeleteHandler(EventHandlerEnvironment env)
@@ -181,10 +193,15 @@ namespace Demo_M_Files_Application
             }
         }
 
-
+        /// <summary>
+        /// Tracks property changed including file renaming...
+        /// </summary>
+        /// <param name="env"></param>
         [EventHandler(MFEventHandlerType.MFEventHandlerAfterSetProperties)]
         public void DocumentPropertyChangeHandler(EventHandlerEnvironment env)
         {
+            // This method will be called when a new doc is created, because properties are set then.
+            // So we are only allowing the method to execute for old docs..
             if (this.IsNewDoc == true) return; 
             
             Vault vault = env.Vault;
@@ -226,9 +243,7 @@ namespace Demo_M_Files_Application
 
         }
 
-        //.
-        //.
-        //.
+        /*
         // going through all event handlers one by one...
 
         [EventHandler(MFEventHandlerType.MFEventHandlerBeforeSetProperties)]
@@ -290,6 +305,7 @@ namespace Demo_M_Files_Application
         {
 
         }
+        */
 
     }
 }

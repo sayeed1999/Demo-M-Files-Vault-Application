@@ -13,7 +13,7 @@ namespace Demo_M_Files_Application
         public static string DownloadFileIntoLocal(Vault vault, ObjectFile objectFile)
         {
             string filename = objectFile.GetNameForFileSystem();
-            string tempFilePath = $"C:\\Development\\Demo M-Files Application\\Demo M-Files Application\\assets\\{filename}";
+            string tempFilePath = $"C:\\Development\\M-FILES\\Demo M-Files Application\\Demo M-Files Application\\assets\\{filename}";
             vault.ObjectFileOperations.DownloadFile(objectFile.ID, objectFile.Version, tempFilePath);
             return tempFilePath;
         }
